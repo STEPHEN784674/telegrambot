@@ -13,7 +13,7 @@ INR_CONVERSION_RATE = 89
 PRODUCTS = {
     'DigitalOcean': {'price': 6, 'file': 'digitalocean.txt'},
     'ChatGPT Plus': {'price': 7, 'file': 'chatgpt.txt'},
-    'Google Cloud': {'price': 10, 'file': 'googlecloud.txt'}
+    'Google Cloud': {'price': 10, 'file': 'googlecloud.txt'},
     'Microsoft365': {'price': 7, 'file': 'microsoft365.txt'}
 }
 
