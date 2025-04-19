@@ -49,14 +49,19 @@ def start(msg):
 def set_price(msg):
     if msg.from_user.id != ADMIN_ID:
         return
-    args = msg.text.split(maxsplit=2)
-    if len(args) != 3:
-        bot.reply_to(msg, "Usage: /setprice <ProductName> <NewPrice>\nExample: /setprice DigitalOcean 8")
+
+    match = re.match(r'^/setprice\\s+(.+?)\\s+(\\d+(\\.\\d+)?)$', msg.text)
+    if not match:
+        bot.reply_to(msg, "Usage: /setprice <ProductName> <NewPrice>\nExample: /setprice Google Cloud 12")
         return
-    product, new_price = args[1], args[2]
+
+    product = match.group(1).strip()
+    new_price = match.group(2)
+
     if product not in PRODUCTS:
         bot.reply_to(msg, f"❌ Product not found: {product}")
         return
+
     try:
         PRODUCTS[product]['price'] = float(new_price)
         with open(PRODUCTS_FILE, 'w') as f:
