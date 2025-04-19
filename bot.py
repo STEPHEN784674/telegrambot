@@ -1,6 +1,7 @@
 import telebot
 from telebot import types
 import os
+import json
 
 BOT_TOKEN = '7763648932:AAFftMRo1CwkTtMZqAGtbgzIK0qNNiqriwA'
 ADMIN_ID = 1237991597
@@ -10,12 +11,21 @@ UPI_ID = '9049275529-5@ybl'
 UPI_QR_PATH = 'qr.png'
 INR_CONVERSION_RATE = 89
 
-PRODUCTS = {
+PRODUCTS_FILE = 'products.json'
+
+DEFAULT_PRODUCTS = {
     'DigitalOcean': {'price': 6, 'file': 'digitalocean.txt'},
     'ChatGPT Plus': {'price': 7, 'file': 'chatgpt.txt'},
     'Google Cloud': {'price': 10, 'file': 'googlecloud.txt'},
     'Microsoft365': {'price': 7, 'file': 'microsoft365.txt'}
 }
+
+# Load product data from JSON or fallback to defaults
+if os.path.exists(PRODUCTS_FILE):
+    with open(PRODUCTS_FILE, 'r') as f:
+        PRODUCTS = json.load(f)
+else:
+    PRODUCTS = DEFAULT_PRODUCTS
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -24,7 +34,6 @@ pending_stock_uploads = {}
 pending_refunds = {}
 known_users = set()
 
-# Load users from file
 if os.path.exists("users.txt"):
     with open("users.txt", "r") as f:
         known_users = set(int(line.strip()) for line in f if line.strip().isdigit())
@@ -39,21 +48,19 @@ def start(msg):
 
 @bot.message_handler(commands=['setprice'])
 def set_price(msg):
-    if msg.from_user.id != ADMIN_ID:
-        return
-    args = msg.text.split(maxsplit=2)
-    if len(args) != 3:
-        bot.reply_to(msg, "Usage: /setprice <ProductName> <NewPrice>\nExample: /setprice DigitalOcean 8")
-        return
-    product, new_price = args[1], args[2]
-    if product not in PRODUCTS:
-        bot.reply_to(msg, f"❌ Product not found: {product}")
-        return
-    try:
-        PRODUCTS[product]['price'] = float(new_price)
-        bot.send_message(msg.chat.id, f"✅ Price for *{product}* updated to *${new_price}*", parse_mode='Markdown')
-    except ValueError:
-        bot.reply_to(msg, "❌ Invalid price. Please enter a number.")
+    if msg.from_user.id != ADMIN_ID:
+        return
+    args = msg.text.split(maxsplit=2)
+    if len(args) != 3:
+        bot.reply_to(msg, "Usage: /setprice <ProductName> <NewPrice>\nExample: /setprice DigitalOcean 8")
+        return
+    product, new_price = args[1], args[2]
+    if product not in PRODUCTS:
+        bot.reply_to(msg, f"❌ Product not found: {product}")
+        return
+    try:
+        PRODUCTS[product]['price'] = float(new_price)
+        bot.reply_to(msg, "❌ Invalid price. Please enter a number.")
 
 @bot.callback_query_handler(func=lambda call: call.data == "menu_buy")
 def show_buy_from_menu(call):
