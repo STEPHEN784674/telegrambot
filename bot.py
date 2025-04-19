@@ -62,9 +62,12 @@ def set_price(msg):
         PRODUCTS[product]['price'] = float(new_price)
         bot.reply_to(msg, "❌ Invalid price. Please enter a number.")
 
-@bot.callback_query_handler(func=lambda call: call.data == "menu_buy")
-def show_buy_from_menu(call):
-    show_products(call.message)
+@bot.message_handler(func=lambda m: m.text == 'Buy')
+def show_products(msg):
+    kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    for product in PRODUCTS:
+        kb.add(product)
+    bot.send_message(msg.chat.id, "Select a product to buy:", reply_markup=kb)
 
 @bot.callback_query_handler(func=lambda call: call.data == "menu_orders")
 def show_my_orders(call):
