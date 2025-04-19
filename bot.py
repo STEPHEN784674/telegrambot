@@ -20,7 +20,6 @@ DEFAULT_PRODUCTS = {
     'Microsoft365': {'price': 7, 'file': 'microsoft365.txt'}
 }
 
-# Load product data from JSON or fallback to defaults
 if os.path.exists(PRODUCTS_FILE):
     with open(PRODUCTS_FILE, 'r') as f:
         PRODUCTS = json.load(f)
@@ -60,14 +59,15 @@ def set_price(msg):
         return
     try:
         PRODUCTS[product]['price'] = float(new_price)
+        with open(PRODUCTS_FILE, 'w') as f:
+            json.dump(PRODUCTS, f, indent=2)
+        bot.send_message(msg.chat.id, f"✅ Price for *{product}* updated to *${new_price}*", parse_mode='Markdown')
+    except ValueError:
         bot.reply_to(msg, "❌ Invalid price. Please enter a number.")
 
-@bot.message_handler(func=lambda m: m.text == 'Buy')
-def show_products(msg):
-    kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    for product in PRODUCTS:
-        kb.add(product)
-    bot.send_message(msg.chat.id, "Select a product to buy:", reply_markup=kb)
+@bot.callback_query_handler(func=lambda call: call.data == "menu_buy")
+def show_buy_from_menu(call):
+    show_products(call.message)
 
 @bot.callback_query_handler(func=lambda call: call.data == "menu_orders")
 def show_my_orders(call):
@@ -193,7 +193,8 @@ def handle_payment_proof(msg):
 @bot.callback_query_handler(func=lambda call: call.data.startswith("approve_"))
 def approve_order(call):
     uid = int(call.data.split("_")[1])
-    if uid not in pending_orders: return
+    if uid not in pending_orders:
+        return
     o = pending_orders[uid]
     path = PRODUCTS[o['product']]['file']
     with open(path, 'r') as f:
@@ -247,5 +248,3 @@ def show_products(msg):
 
 print("Bot is running...")
 bot.infinity_polling()
-
-
