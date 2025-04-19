@@ -2,6 +2,8 @@ import telebot
 from telebot import types
 import os
 import json
+import re
+
 
 BOT_TOKEN = '7763648932:AAFftMRo1CwkTtMZqAGtbgzIK0qNNiqriwA'
 ADMIN_ID = 1237991597
@@ -50,7 +52,7 @@ def set_price(msg):
     if msg.from_user.id != ADMIN_ID:
         return
 
-    match = re.match(r'^/setprice\\s+(.+?)\\s+(\\d+(\\.\\d+)?)$', msg.text)
+    match = re.match(r'^/setprice\s+(.+?)\s+(\d+(\.\d+)?)$', msg.text)
     if not match:
         bot.reply_to(msg, "Usage: /setprice <ProductName> <NewPrice>\nExample: /setprice Google Cloud 12")
         return
