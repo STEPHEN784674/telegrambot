@@ -37,6 +37,24 @@ def start(msg):
     kb.add(types.InlineKeyboardButton("Contact Admin", url=f"https://t.me/{ADMIN_USERNAME}"))
     bot.send_message(msg.chat.id, "Welcome! Please choose an option:", reply_markup=kb)
 
+@bot.message_handler(commands=['setprice'])
+def set_price(msg):
+    if msg.from_user.id != ADMIN_ID:
+        return
+    args = msg.text.split(maxsplit=2)
+    if len(args) != 3:
+        bot.reply_to(msg, "Usage: /setprice <ProductName> <NewPrice>\nExample: /setprice DigitalOcean 8")
+        return
+    product, new_price = args[1], args[2]
+    if product not in PRODUCTS:
+        bot.reply_to(msg, f"❌ Product not found: {product}")
+        return
+    try:
+        PRODUCTS[product]['price'] = float(new_price)
+        bot.send_message(msg.chat.id, f"✅ Price for *{product}* updated to *${new_price}*", parse_mode='Markdown')
+    except ValueError:
+        bot.reply_to(msg, "❌ Invalid price. Please enter a number.")
+
 @bot.callback_query_handler(func=lambda call: call.data == "menu_buy")
 def show_buy_from_menu(call):
     show_products(call.message)
