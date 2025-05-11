@@ -41,6 +41,8 @@ if os.path.exists("users.txt"):
         known_users = set(int(line.strip()) for line in f if line.strip().isdigit())
 
 def save_wallets():
+    with open('wallets_backup.json', 'w') as backup:
+        json.dump(WALLETS, backup, indent=2)
     with open(WALLETS_FILE, 'w') as f:
         json.dump(WALLETS, f, indent=2)
 
@@ -51,6 +53,18 @@ def get_wallet(uid):
 
 @bot.message_handler(commands=['start'])
 def start(msg):
+
+@bot.message_handler(commands=['wallet'])
+def wallet_cmd(msg):
+    wallet(msg)
+
+@bot.message_handler(commands=['addfunds'])
+def addfunds_cmd(msg):
+    add_funds(msg)
+
+@bot.message_handler(commands=['buy'])
+def buy_cmd(msg):
+    show_products(msg)
     kb = types.InlineKeyboardMarkup()
     kb.add(types.InlineKeyboardButton("Buy", callback_data="menu_buy"))
     kb.add(types.InlineKeyboardButton("My Wallet", callback_data="menu_wallet"))
@@ -153,6 +167,8 @@ def set_price(msg):
         return
     try:
         PRODUCTS[product]['price'] = float(new_price)
+        with open('products_backup.json', 'w') as backup:
+            json.dump(PRODUCTS, backup, indent=2)
         with open(PRODUCTS_FILE, 'w') as f:
             json.dump(PRODUCTS, f, indent=2)
         bot.send_message(msg.chat.id, f"✅ Price for *{product}* updated to *${new_price}*", parse_mode='Markdown')
@@ -183,11 +199,52 @@ def handle_stock_file(msg):
     bot.send_message(msg.chat.id, f"✅ Stock updated for {product}.")
     del pending_stock_uploads[msg.from_user.id]
 
-@bot.message_handler(func=lambda m: True)
+@bot.message_handler(content_types=['text', 'photo'])
+def handle_addfund_proof(msg):
+    if msg.text or msg.photo:
+        caption = f"💸 New add funds request from @{msg.from_user.username or msg.chat.id}
+User ID: `{msg.chat.id}`
+"
+        if msg.photo:
+            file_id = msg.photo[-1].file_id
+            kb = types.InlineKeyboardMarkup()
+            kb.add(
+                types.InlineKeyboardButton("✅ Approve", callback_data=f"approvefund_{msg.chat.id}"),
+                types.InlineKeyboardButton("❌ Decline", callback_data=f"declinefund_{msg.chat.id}")
+            )
+            bot.send_photo(ADMIN_ID, file_id, caption=caption, parse_mode='Markdown', reply_markup=kb)
+        else:
+            bot.send_message(ADMIN_ID, caption + f"Proof: {msg.text}", parse_mode='Markdown')
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("approvefund_"))
+def approve_fund(call):
+    uid = call.data.split("_")[1]
+    try:
+        uid = int(uid)
+        amount = 0  # You can replace this with fixed amount logic or prompt manually
+        bot.send_message(uid, f"✅ Your payment has been approved. Please wait while your balance is updated.")
+        bot.send_message(ADMIN_ID, f"Now run: /addbal @{WALLETS[str(uid)].get('username', uid)} <amount>")
+    except Exception as e:
+        bot.send_message(ADMIN_ID, f"Failed to process approval: {e}")
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("declinefund_"))
+def decline_fund(call):
+    uid = call.data.split("_")[1]
+    try:
+        uid = int(uid)
+        bot.send_message(uid, "❌ Your payment has been declined. Please contact admin.")
+        bot.send_message(ADMIN_ID, f"User {uid} has been notified about decline.")
+    except:
+        pass
+
 def track_users(m):
     if m.chat.id != ADMIN_ID:
         if m.chat.id not in known_users:
             known_users.add(m.chat.id)
+            with open("users_backup.txt", "w") as backup:
+                backup.write("
+".join(map(str, known_users)))
             with open("users.txt", "a") as f:
                 f.write(str(m.chat.id) + "\n")
 
